@@ -334,4 +334,4 @@ def predict_parking_safety_score(data: ParkingSpotInput) -> float:
 @app.post("/predict_safety_score/")
 async def predict_safety_score(input_data: ParkingSpotInput):
     score = predict_parking_safety_score(input_data)
-    return {"predicted_safety_score": round(score, 2)}
+    return {"predicted_safety_score": float(round(score, 2))}
