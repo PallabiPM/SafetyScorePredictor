@@ -376,10 +376,7 @@ def predict_parking_safety_score(data: ParkingSpotInput) -> float:
     return max(0, min(100, pred))
 
 @app.post("/predict_safety_score/")
-async def predict_safety_score(input_data: ParkingSpotInput):
+async def predict_safety_score(input_data: YourInputModel):
     score = predict_parking_safety_score(input_data)
-    return {
-        "input": input_data.dict(),
-        "predicted_safety_score": round(score, 2)
-    }
+    return {"predicted_score": float(score)}
 
