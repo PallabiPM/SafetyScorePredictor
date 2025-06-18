@@ -331,48 +331,19 @@ def predict_parking_safety_score(data: ParkingSpotInput) -> float:
     pred = model.predict(X_input)[0]
     return max(0, min(100, pred))
 
-class ParkingSpotInput(BaseModel):
-    latitude: float
-    longitude: float
-    parking_type: str
-    occupancy_density: float
-    time_of_day: str
-    traffic_level: str
-    weather: str
-    lighting: str
-    cctv_coverage: bool
-    collision_history: int
-
-# ✅ Initialize FastAPI app
-app = FastAPI()
-
-# ✅ Define prediction function
-def predict_parking_safety_score(data: ParkingSpotInput) -> float:
-    input_df_cat = pd.DataFrame([{
-        'Type of Parking Spot': data.parking_type,
-        'Time of Day': data.time_of_day,
-        'Traffic Level': data.traffic_level,
-        'Weather': data.weather,
-        'Lighting': data.lighting
-    }])
-
-    encoded_cat = encoder.transform(input_df_cat).toarray()
-
-    numeric_features = np.array([
-        data.latitude,
-        data.longitude,
-        data.occupancy_density,
-        int(data.cctv_coverage),
-        data.collision_history
-    ]).reshape(1, -1)
-
-    X_input = np.hstack([numeric_features, encoded_cat])
-
-    pred = model.predict(X_input)[0]
-    return max(0, min(100, pred))  # Clipping between 0 and 100
-
-# ✅ Define API endpoint
 @app.post("/predict_safety_score/")
 async def predict_safety_score(input_data: ParkingSpotInput):
     score = predict_parking_safety_score(input_data)
-    return {"predicted_score": round(float(score), 2)}
+    return {
+        "predicted_score": float(score),
+        "latitude": input_data.latitude,
+        "longitude": input_data.longitude,
+        "parking_type": input_data.parking_type,
+        "occupancy_density": input_data.occupancy_density,
+        "time_of_day": input_data.time_of_day,
+        "traffic_level": input_data.traffic_level,
+        "weather": input_data.weather,
+        "lighting": input_data.lighting,
+        "cctv_coverage": input_data.cctv_coverage,
+        "collision_history": input_data.collision_history
+    }
