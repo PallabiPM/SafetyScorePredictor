@@ -331,7 +331,55 @@ def predict_parking_safety_score(data: ParkingSpotInput) -> float:
     pred = model.predict(X_input)[0]
     return max(0, min(100, pred))
 
+from fastapi import FastAPI
+from pydantic import BaseModel
+import joblib
+import numpy as np
+import pandas as pd
+
+# Load model and encoder at startup
+model = joblib.load('xgb_model.joblib')
+encoder = joblib.load('encoder.joblib')
+
+class ParkingSpotInput(BaseModel):
+    latitude: float
+    longitude: float
+    parking_type: str
+    occupancy_density: float
+    time_of_day: str
+    traffic_level: str
+    weather: str
+    lighting: str
+    cctv_coverage: bool
+    collision_history: int
+
+app = FastAPI()
+
+def predict_parking_safety_score(data: ParkingSpotInput) -> float:
+    input_df_cat = pd.DataFrame([{
+        'Type of Parking Spot': data.parking_type,
+        'Time of Day': data.time_of_day,
+        'Traffic Level': data.traffic_level,
+        'Weather': data.weather,
+        'Lighting': data.lighting
+    }])
+    encoded_cat = encoder.transform(input_df_cat).toarray()
+    numeric_features = np.array([
+        data.latitude,
+        data.longitude,
+        data.occupancy_density,
+        int(data.cctv_coverage),
+        data.collision_history
+    ]).reshape(1, -1)
+    X_input = np.hstack([numeric_features, encoded_cat])
+    pred = model.predict(X_input)[0]
+    return max(0, min(100, pred))
+
 @app.post("/predict_safety_score/")
 async def predict_safety_score(input_data: ParkingSpotInput):
     score = predict_parking_safety_score(input_data)
-    return {"predicted_safety_score": float(round(score, 2))}
+    return {
+        "input": input_data.dict(),
+        "predicted_safety_score": round(score, 2)
+    }
+
